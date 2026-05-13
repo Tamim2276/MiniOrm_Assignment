@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Build a Scratch ORM with ADO.NET</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      background: #f3f4f6;
+      margin: 0;
+      padding: 40px 20px;
+      font-family: 'Fraunces', Georgia, serif;
+      color: #1a1a1a;
+    }
+
+    .wrap {
+      max-width: 700px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+    }
+
+    p { font-size: 14.5px; line-height: 1.75; margin: 0 0 0.65rem; }
+    hr { border: none; border-top: 0.5px solid #e0e0e0; margin: 1.75rem 0; }
+    code { font-family: 'DM Mono', monospace; font-size: 12px; background: #f3f4f6; padding: 1px 5px; border-radius: 4px; }
+
+    .doc-header { border-top: 3px solid #1a1a1a; padding-top: 1.25rem; margin-bottom: 1.75rem; }
+    .doc-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+    .doc-meta span { font-family: 'DM Mono', monospace; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.08em; }
+    .doc-title { font-size: 28px; font-weight: 600; line-height: 1.2; margin: 0 0 0.3rem; }
+    .doc-sub { font-size: 15px; font-style: italic; color: #666; margin: 0 0 1rem; font-weight: 400; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge { font-family: 'DM Mono', monospace; font-size: 11px; padding: 3px 9px; border-radius: 100px; border: 0.5px solid #ccc; color: #666; background: #f3f4f6; }
+    .badge.green { background: #EAF3DE; color: #3B6D11; border-color: #97C459; }
+    .badge.blue { background: #E6F1FB; color: #185FA5; border-color: #85B7EB; }
+
+    .section { margin-bottom: 2rem; }
+    .sec-label { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: #aaa; margin-bottom: 0.5rem; }
+
+    .obj-list { list-style: none; padding: 0; margin: 0; }
+    .obj-list li { font-size: 14px; line-height: 1.65; padding: 0.45rem 0 0.45rem 1.4rem; border-bottom: 0.5px solid #eee; position: relative; }
+    .obj-list li:last-child { border-bottom: none; }
+    .obj-list li::before { content: '→'; position: absolute; left: 0; color: #aaa; font-family: 'DM Mono', monospace; font-size: 11px; top: 0.55rem; }
+
+    .proj-struct { background: #f3f4f6; border-radius: 8px; padding: 1rem; margin-top: 0.75rem; font-family: 'DM Mono', monospace; font-size: 12px; line-height: 1.8; color: #1a1a1a; white-space: pre; }
+    .proj-folder { color: #EF9F27; font-weight: 500; }
+    .proj-file { color: #666; }
+
+    .tasks { display: flex; flex-direction: column; gap: 10px; }
+    .task { background: #ffffff; border: 0.5px solid #e0e0e0; border-radius: 12px; overflow: hidden; }
+    .task-top { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 10px; padding: 0.9rem 1.1rem; cursor: pointer; user-select: none; }
+    .task-top:hover { background: #f8f8f8; }
+    .task-n { font-family: 'DM Mono', monospace; font-size: 11px; color: #aaa; }
+    .task-title { font-size: 14.5px; font-weight: 500; }
+    .task-pts { font-family: 'DM Mono', monospace; font-size: 11px; color: #666; white-space: nowrap; }
+    .chevron { font-size: 11px; color: #aaa; margin-left: 8px; transition: transform 0.2s; display: inline-block; }
+    .task-body { display: none; padding: 0 1.1rem 1rem; border-top: 0.5px solid #eee; }
+    .task-body.open { display: block; }
+    .task-body p { margin-top: 0.75rem; font-size: 14px; }
+
+    .cmd-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 13px; }
+    .cmd-table th { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; text-align: left; padding: 0 0.75rem 0.4rem; border-bottom: 0.5px solid #eee; }
+    .cmd-table td { padding: 0.45rem 0.75rem; border-bottom: 0.5px solid #eee; vertical-align: top; line-height: 1.55; }
+    .cmd-table tr:last-child td { border-bottom: none; }
+    .cmd-table td:first-child { font-family: 'DM Mono', monospace; font-size: 12px; white-space: nowrap; }
+    .cmd-table td:last-child { color: #555; }
+
+    .type-grid { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 12.5px; border: 0.5px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+    .type-grid th { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; text-align: left; padding: 0.35rem 0.75rem; background: #f3f4f6; border-bottom: 0.5px solid #ddd; }
+    .type-grid td { padding: 0.38rem 0.75rem; border-bottom: 0.5px solid #eee; vertical-align: top; line-height: 1.5; }
+    .type-grid tr:last-child td { border-bottom: none; }
+    .type-grid td:first-child { font-family: 'DM Mono', monospace; background: #f3f4f6; }
+    .type-grid td:nth-child(2) { font-family: 'DM Mono', monospace; color: #185FA5; }
+    .type-grid td:last-child { color: #666; font-size: 12px; }
+    .type-group td { background: #ececec; font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; padding: 0.25rem 0.75rem; border-bottom: 0.5px solid #ddd; }
+
+    .terminal { background: #1e1e2e; border-radius: 8px; padding: 0.85rem 1rem; margin-top: 0.75rem; }
+    .term-bar { display: flex; gap: 5px; margin-bottom: 0.6rem; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; }
+    .d1{background:#ff5f57;}.d2{background:#febc2e;}.d3{background:#28c840;}
+    .tl { font-family: 'DM Mono', monospace; font-size: 11.5px; line-height: 1.85; }
+    .t-p{color:#6272a4;}.t-c{color:#f8f8f2;}.t-o{color:#8be9fd;}.t-ok{color:#50fa7b;}.t-d{color:#6272a4;}.t-kw{color:#ff79c6;}.t-str{color:#f1fa8c;}.t-cm{color:#6272a4;}.t-type{color:#8be9fd;}.t-val{color:#bd93f9;}
+
+    .note { border-left: 2px solid #97C459; background: #EAF3DE; border-radius: 0 8px 8px 0; padding: 0.65rem 0.9rem; margin-top: 0.75rem; }
+    .note p { font-size: 13px; margin: 0; color: #3B6D11; line-height: 1.6; }
+    .note-blue { border-left: 2px solid #85B7EB; background: #E6F1FB; border-radius: 0 8px 8px 0; padding: 0.65rem 0.9rem; margin-top: 0.75rem; }
+    .note-blue p { font-size: 13px; margin: 0; color: #185FA5; line-height: 1.6; }
+
+    .steps { display: flex; flex-direction: column; gap: 0; margin-top: 0.75rem; }
+    .step { border: 0.5px solid #e0e0e0; border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
+    .step-header { display: flex; align-items: center; gap: 10px; padding: 0.55rem 0.85rem; background: #f3f4f6; border-bottom: 0.5px solid #eee; }
+    .step-num { font-family: 'DM Mono', monospace; font-size: 10px; color: #aaa; background: #fff; border: 0.5px solid #ddd; border-radius: 100px; padding: 1px 7px; }
+    .step-title { font-family: 'DM Mono', monospace; font-size: 12px; color: #1a1a1a; font-weight: 500; }
+    .step .terminal { border-radius: 0 0 8px 8px; margin-top: 0; }
+
+    .rubric { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .rub-item { background: #f3f4f6; border-radius: 8px; padding: 0.7rem 0.9rem; }
+    .rub-pts { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; margin-bottom: 2px; }
+    .rub-pts span { font-size: 11px; color: #aaa; font-weight: 400; }
+    .rub-label { font-size: 12.5px; color: #555; line-height: 1.5; }
+    .rub-total { grid-column: 1 / -1; background: #fff; border: 0.5px solid #ddd; border-radius: 8px; padding: 0.7rem 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+    .rub-total .rub-pts { font-size: 22px; margin: 0; }
+
+    .sub-grid { display: flex; flex-direction: column; gap: 0; }
+    .sub-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; font-size: 13.5px; padding: 0.45rem 0; border-bottom: 0.5px solid #eee; }
+    .sub-row:last-child { border-bottom: none; }
+    .sub-key { font-family: 'DM Mono', monospace; font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 2px; }
+    .sub-val { color: #1a1a1a; line-height: 1.6; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-header">
+    <div class="doc-meta">
+      <span>ASP.NET / C#</span><span>Intermediate Level</span><span>Individual Assignment</span><span>100 pts</span>
+    </div>
+    <h1 class="doc-title">Build a Scratch ORM with ADO.NET</h1>
+    <p class="doc-sub">Implementing an Entity Framework–style data mapper and migration CLI on top of PostgreSQL</p>
+    <div class="badges">
+      <span class="badge green">ORM Implementation</span>
+      <span class="badge green">Command-based Migrations</span>
+      <span class="badge blue">PostgreSQL</span>
+      <span class="badge">ADO.NET / Npgsql</span>
+      <span class="badge">C# Reflection</span>
+      <span class="badge">GitHub Submission</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Overview</div>
+    <p>Most .NET developers use Entity Framework Core without understanding what happens beneath it. In this assignment you will build a simplified ORM from scratch using ADO.NET and Npgsql — the low-level building blocks that production ORMs sit on top of.</p>
+    <p>You will implement a library that maps C# classes to PostgreSQL tables, supports CRUD through a generic <code>DbSet&lt;T&gt;</code>, ships a command-line migration tool, and includes a step-by-step coding demo that proves the whole system works against a live database exactly as a real consumer would use it.</p>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Learning Objectives</div>
+    <ul class="obj-list">
+      <li>Understand how ORMs work internally by building one from the ground up</li>
+      <li>Use ADO.NET with Npgsql (<code>NpgsqlConnection</code>, <code>NpgsqlCommand</code>, <code>NpgsqlDataReader</code>) for raw PostgreSQL access</li>
+      <li>Apply C# reflection to map class properties to columns dynamically</li>
+      <li>Map both value types and nullable instance types to their Postgres-native equivalents</li>
+      <li>Design a command-driven migration CLI that tracks and applies schema changes</li>
+      <li>Demonstrate the system through a realistic step-by-step coding walkthrough</li>
+    </ul>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="sec-label">Project Structure</div>
+    <p>Create a .NET solution with two console projects:</p>
+    <div class="proj-struct"><span class="proj-folder">MiniOrm/</span> (Console Application)
+  ├─ <span class="proj-folder">Attributes/</span>
+  │  ├─ <span class="proj-file">TableAttribute.cs</span>
+  │  ├─ <span class="proj-file">ColumnAttribute.cs</span>
+  │  └─ <span class="proj-file">PrimaryKeyAttribute.cs</span>
+  ├─ <span class="proj-folder">Models/</span>
+  │  ├─ <span class="proj-file">Product.cs</span>
+  │  └─ <span class="proj-file">Order.cs</span>
+  ├─ <span class="proj-folder">Data/</span>
+  │  ├─ <span class="proj-file">DbContext.cs</span>
+  │  ├─ <span class="proj-file">DbSet.cs</span>
+  │  ├─ <span class="proj-file">TypeMapper.cs</span>
+  │  └─ <span class="proj-file">EntityMetadata.cs</span>
+  └─ <span class="proj-file">Program.cs</span> (demo walkthrough)
+
+<span class="proj-folder">MiniOrm.Migrations/</span> (Console Application)
+  ├─ <span class="proj-folder">Commands/</span>
+  │  └─ <span class="proj-file">MigrationRunner.cs</span>
+  └─ <span class="proj-file">Program.cs</span> (CLI entry point)</div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="sec-label">Tasks — click to expand</div>
+    <div class="tasks">
+
+      <div class="task">
+        <div class="task-top" onclick="toggle(this)">
+          <span class="task-n">01</span>
+          <span class="task-title">Project setup &amp; PostgreSQL connection</span>
+          <span><span class="task-pts">15 pts</span><span class="chevron">▸</span></span>
+        </div>
+        <div class="task-body">
+          <p>In the <code>MiniOrm</code> console project, add <code>Npgsql</code> as the only permitted NuGet dependency. Create a <code>DbContext</code> base class in <code>Data/DbContext.cs</code> that accepts a Postgres connection string and manages the <code>NpgsqlConnection</code> lifecycle. Concrete context classes should inherit from it and declare their <code>DbSet&lt;T&gt;</code> properties.</p>
+          <div class="terminal">
+            <div class="term-bar"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
+            <div class="tl"><span class="t-kw">public class</span><span class="t-c"> AppDbContext : DbContext {</span></div>
+            <div class="tl"><span class="t-kw">&nbsp;&nbsp;public</span><span class="t-c"> DbSet&lt;Product&gt; Products { </span><span class="t-kw">get</span><span class="t-c">; </span><span class="t-kw">set</span><span class="t-c">; }</span></div>
+            <div class="tl"><span class="t-kw">&nbsp;&nbsp;public</span><span class="t-c"> DbSet&lt;Order&gt; Orders { </span><span class="t-kw">get</span><span class="t-c">; </span><span class="t-kw">set</span><span class="t-c">; }</span></div>
+            <div class="tl"><span class="t-kw">&nbsp;&nbsp;public</span><span class="t-c"> AppDbContext(</span><span class="t-type">string</span><span class="t-c"> connStr) : </span><span class="t-kw">base</span><span class="t-c">(connStr) { }</span></div>
+            <div class="tl"><span class="t-c">}</span></div>
+          </div>
+          <div class="note"><p>Only <code>Npgsql</code> is permitted. No Dapper, EF Core, or any other data-access library.</p></div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-top" onclick="toggle(this)">
+          <span class="task-n">02</span>
+          <span class="task-title">Entity mapping &amp; type resolution via reflection</span>
+          <span><span class="task-pts">20 pts</span><span class="chevron">▸</span></span>
+        </div>
+        <div class="task-body">
+          <p>Define custom attributes in <code>Attributes/</code> — <code>[Table]</code>, <code>[Column]</code>, <code>[PrimaryKey]</code> — and implement a <code>TypeMapper</code> in <code>Data/TypeMapper.cs</code> that uses C# reflection to build runtime metadata for each entity. <strong>Skip any property without a <code>[Column]</code> or <code>[PrimaryKey]</code> attribute</strong> — this prevents navigation properties from being mapped.</p>
+          <table class="type-grid">
+            <tr><th>C# type</th><th>Postgres type</th><th>Nullability</th></tr>
+            <tr class="type-group"><td colspan="3">Value types — non-nullable</td></tr>
+            <tr><td>int (PrimaryKey)</td><td>SERIAL</td><td>PRIMARY KEY</td></tr>
+            <tr><td>int</td><td>INTEGER</td><td>NOT NULL</td></tr>
+            <tr><td>long</td><td>BIGINT</td><td>NOT NULL</td></tr>
+            <tr><td>float</td><td>REAL</td><td>NOT NULL</td></tr>
+            <tr><td>double</td><td>DOUBLE PRECISION</td><td>NOT NULL</td></tr>
+            <tr><td>decimal</td><td>NUMERIC</td><td>NOT NULL</td></tr>
+            <tr><td>bool</td><td>BOOLEAN</td><td>NOT NULL</td></tr>
+            <tr><td>DateTime</td><td>TIMESTAMP</td><td>NOT NULL</td></tr>
+            <tr><td>Guid</td><td>UUID</td><td>NOT NULL</td></tr>
+            <tr class="type-group"><td colspan="3">Nullable instance types — T?</td></tr>
+            <tr><td>int?</td><td>INTEGER</td><td>NULL</td></tr>
+            <tr><td>long?</td><td>BIGINT</td><td>NULL</td></tr>
+            <tr><td>float?</td><td>REAL</td><td>NULL</td></tr>
+            <tr><td>double?</td><td>DOUBLE PRECISION</td><td>NULL</td></tr>
+            <tr><td>decimal?</td><td>NUMERIC</td><td>NULL</td></tr>
+            <tr><td>bool?</td><td>BOOLEAN</td><td>NULL</td></tr>
+            <tr><td>DateTime?</td><td>TIMESTAMP</td><td>NULL</td></tr>
+            <tr><td>Guid?</td><td>UUID</td><td>NULL</td></tr>
+            <tr class="type-group"><td colspan="3">Reference types</td></tr>
+            <tr><td>string</td><td>TEXT</td><td>NOT NULL</td></tr>
+            <tr><td>string?</td><td>TEXT</td><td>NULL</td></tr>
+          </table>
+          <div class="note-blue"><p>Use <code>Nullable.GetUnderlyingType(type)</code> to detect nullable value types at runtime. Properties without <code>[Column]</code> attributes are ignored — they do not generate columns.</p></div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-top" onclick="toggle(this)">
+          <span class="task-n">03</span>
+          <span class="task-title">Generic DbSet&lt;T&gt; with CRUD operations</span>
+          <span><span class="task-pts">25 pts</span><span class="chevron">▸</span></span>
+        </div>
+        <div class="task-body">
+          <p>Implement a generic <code>DbSet&lt;T&gt;</code> class in <code>Data/DbSet.cs</code> that uses the reflection metadata from Task 02 to dynamically build and execute parameterised SQL. No table name or column name may be hardcoded. Null values from nullable properties must be passed as <code>DBNull.Value</code> in Npgsql parameters.</p>
+          <table class="cmd-table">
+            <tr><th>Method</th><th>Behaviour</th></tr>
+            <tr><td>Insert(T entity)</td><td>Parameterised INSERT, returns new row ID via RETURNING id</td></tr>
+            <tr><td>FindById(int id)</td><td>SELECT WHERE on PK, maps result to T — null columns → nullable property</td></tr>
+            <tr><td>GetAll()</td><td>SELECT * mapped to IEnumerable&lt;T&gt;</td></tr>
+            <tr><td>Update(T entity)</td><td>SET clause from all non-PK properties, WHERE on PK</td></tr>
+            <tr><td>Delete(int id)</td><td>DELETE WHERE on PK</td></tr>
+          </table>
+          <div class="note-blue"><p>Use parameterised queries with <code>NpgsqlParameter</code> for all values — never concatenate values into SQL strings. Null values must round-trip correctly.</p></div>
+          <div class="note"><p>No LINQ provider, lazy loading, or relationship mapping required.</p></div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-top" onclick="toggle(this)">
+          <span class="task-n">04</span>
+          <span class="task-title">Command-based migration CLI</span>
+          <span><span class="task-pts">25 pts</span><span class="chevron">▸</span></span>
+        </div>
+        <div class="task-body">
+          <p>In the <code>MiniOrm.Migrations</code> console project, implement a CLI that reads entity metadata from the MiniOrm project, diffs the current database schema against registered entities, and generates or applies DDL accordingly. All generated SQL must use Postgres-native types from the mapping in Task 02, respecting nullability.</p>
+          <table class="cmd-table">
+            <tr><th>Command</th><th>Pts</th><th>Behaviour</th></tr>
+            <tr><td>dotnet run -- migrations add &lt;Name&gt;</td><td>8</td><td>Generates a timestamped .sql file with <code>-- up</code> and <code>-- down</code> sections. Does not touch the database.</td></tr>
+            <tr><td>dotnet run -- migrations apply</td><td>7</td><td>Runs all pending migrations in order. Records each in a <code>__migrations</code> table.</td></tr>
+            <tr><td>dotnet run -- migrations list</td><td>5</td><td>Prints all files marked [applied] or [pending].</td></tr>
+            <tr><td>dotnet run -- migrations rollback</td><td>5</td><td>Reverts the last applied migration using its <code>-- down</code> script.</td></tr>
+          </table>
+          <div class="terminal">
+            <div class="term-bar"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
+            <div class="tl"><span class="t-cm">-- up</span></div>
+            <div class="tl"><span class="t-c">CREATE TABLE IF NOT EXISTS products (</span></div>
+            <div class="tl"><span class="t-c">&nbsp;&nbsp;id SERIAL PRIMARY KEY,</span></div>
+            <div class="tl"><span class="t-c">&nbsp;&nbsp;name TEXT NOT NULL,</span></div>
+            <div class="tl"><span class="t-c">&nbsp;&nbsp;price NUMERIC NOT NULL,</span></div>
+            <div class="tl"><span class="t-c">&nbsp;&nbsp;discount NUMERIC NULL,</span></div>
+            <div class="tl"><span class="t-c">&nbsp;&nbsp;in_stock BOOLEAN NOT NULL</span></div>
+            <div class="tl"><span class="t-c">);</span></div>
+            <div class="tl"><span class="t-cm">-- down</span></div>
+            <div class="tl"><span class="t-c">DROP TABLE IF EXISTS products;</span></div>
+          </div>
+          <div class="note"><p>Scope: CREATE TABLE and ADD COLUMN in up, DROP TABLE and DROP COLUMN in down. Column nullability must match the C# property type.</p></div>
+        </div>
+      </div>
+
+      <div class="task">
+        <div class="task-top" onclick="toggle(this)">
+          <span class="task-n">05</span>
+          <span class="task-title">Step-by-step coding demo in Program.cs</span>
+          <span><span class="task-pts">15 pts</span><span class="chevron">▸</span></span>
+        </div>
+        <div class="task-body">
+          <p>In <code>MiniOrm/Program.cs</code>, implement a demo that walks through the exact coding sequence a real developer follows when using your ORM. Define entities, create a context, register DbSets, call all CRUD operations, and print output at each step.</p>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-header"><span class="step-num">Step 1</span><span class="step-title">Define entities with attributes</span></div>
+              <div class="terminal">
+                <div class="tl"><span class="t-c">[Table(</span><span class="t-str">"products"</span><span class="t-c">)]</span></div>
+                <div class="tl"><span class="t-kw">public class</span><span class="t-c"> Product {</span></div>
+                <div class="tl"><span class="t-c">&nbsp;&nbsp;[PrimaryKey] </span><span class="t-kw">public int</span><span class="t-c"> Id { </span><span class="t-kw">get</span><span class="t-c">; </span><span class="t-kw">set</span><span class="t-c">; }</span></div>
+                <div class="tl"><span class="t-c">&nbsp;&nbsp;[Column(</span><span class="t-str">"name"</span><span class="t-c">)] </span><span class="t-kw">public string</span><span class="t-c"> Name { </span><span class="t-kw">get</span><span class="t-c">; </span><span class="t-kw">set</span><span class="t-c">; }</span></div>
+                <div class="tl"><span class="t-c">&nbsp;&nbsp;[Column(</span><span class="t-str">"price"</span><span class="t-c">)] </span><span class="t-kw">public decimal</span><span class="t-c"> Price { </span><span class="t-kw">get</span><span class="t-c">; </span><span class="t-kw">set</span><span class="t-c">; }</span></div>
+                <div class="tl"><span class="t-c">&nbsp;&nbsp;[Column(</span><span class="t-str">"discount"</span><span class="t-c">)] </span><span class="t-kw">public decimal?</span><span class="t-c"> Discount { </span><span class="t-kw">get</span><span class="t-c">; </span><span class="t-kw">set</span><span class="t-c">; } </span><span class="t-cm">// nullable</span></div>
+                <div class="tl"><span class="t-c">&nbsp;&nbsp;[Column(</span><span class="t-str">"in_stock"</span><span class="t-c">)] </span><span class="t-kw">public bool</span><span class="t-c"> InStock { </span><span class="t-kw">get</span><span class="t-c">; </span><span class="t-kw">set</span><span class="t-c">; }</span></div>
+                <div class="tl"><span class="t-c">}</span></div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-header"><span class="step-num">Step 2</span><span class="step-title">Create the DbContext and register DbSets</span></div>
+              <div class="terminal">
+                <div class="tl"><span class="t-kw">public class</span><span class="t-c"> AppDbContext : DbContext {</span></div>
+                <div class="tl"><span class="t-kw">&nbsp;&nbsp;public</span><span class="t-c"> DbSet&lt;Product&gt; Products { </span><span class="t-kw">get</span><span class="t-c">; </span><span class="t-kw">set</span><span class="t-c">; }</span></div>
+                <div class="tl"><span class="t-kw">&nbsp;&nbsp;public</span><span class="t-c"> AppDbContext(</span><span class="t-type">string</span><span class="t-c"> connStr) : </span><span class="t-kw">base</span><span class="t-c">(connStr) { }</span></div>
+                <div class="tl"><span class="t-c">}</span></div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-header"><span class="step-num">Step 3</span><span class="step-title">Instantiate DbContext and run migrations</span></div>
+              <div class="terminal">
+                <div class="tl"><span class="t-kw">var</span><span class="t-c"> connStr = Environment.GetEnvironmentVariable(</span><span class="t-str">"MINIORM_CONN"</span><span class="t-c">);</span></div>
+                <div class="tl"><span class="t-kw">var</span><span class="t-c"> db = </span><span class="t-kw">new</span><span class="t-c"> AppDbContext(connStr);</span></div>
+                <div class="tl"><span class="t-cm">// Before using DbSet, from MiniOrm.Migrations run:</span></div>
+                <div class="tl"><span class="t-cm">// $ dotnet run -- migrations apply</span></div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-header"><span class="step-num">Step 4</span><span class="step-title">Insert entities via DbSet</span></div>
+              <div class="terminal">
+                <div class="tl"><span class="t-kw">var</span><span class="t-c"> keyboard = </span><span class="t-kw">new</span><span class="t-c"> Product { Name = </span><span class="t-str">"Keyboard"</span><span class="t-c">, Price = </span><span class="t-val">89.99m</span><span class="t-c">, Discount = </span><span class="t-kw">null</span><span class="t-c">, InStock = </span><span class="t-kw">true</span><span class="t-c"> };</span></div>
+                <div class="tl"><span class="t-kw">int</span><span class="t-c"> id = db.Products.Insert(keyboard);</span></div>
+                <div class="tl"><span class="t-ok">// Output: Inserted Product Id=1, Discount=NULL ✓</span></div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-header"><span class="step-num">Step 5</span><span class="step-title">Query, update, delete — verify final state</span></div>
+              <div class="terminal">
+                <div class="tl"><span class="t-kw">var</span><span class="t-c"> found = db.Products.FindById(</span><span class="t-val">1</span><span class="t-c">);</span></div>
+                <div class="tl"><span class="t-ok">// Output: Found → Keyboard, Price=89.99, Discount=NULL</span></div>
+                <div class="tl"><span class="t-c">found.Price = </span><span class="t-val">79.99m</span><span class="t-c">; found.Discount = </span><span class="t-val">5.00m</span><span class="t-c">;</span></div>
+                <div class="tl"><span class="t-c">db.Products.Update(found);</span></div>
+                <div class="tl"><span class="t-ok">// Output: Updated → Price=79.99, Discount=5.00 ✓</span></div>
+                <div class="tl"><span class="t-c">db.Products.GetAll(); db.Products.Delete(</span><span class="t-val">1</span><span class="t-c">);</span></div>
+                <div class="tl"><span class="t-ok">// Output: Deleted Id=1 ✓ — 0 products remaining</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-blue"><p>Read the connection string from the environment variable <code>MINIORM_CONN</code> — never hardcode credentials. Document setup in your README.</p></div>
+          <div class="note"><p>The demo is a working proof that a real consumer can instantiate a context, register DbSets, run migrations, and perform every operation end-to-end against a live Postgres database.</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="sec-label">Grading Rubric</div>
+    <div class="rubric">
+      <div class="rub-item">
+        <div class="rub-pts">15 <span>pts</span></div>
+        <div class="rub-label">DbContext base class with Npgsql connection and DbSet registration</div>
+      </div>
+      <div class="rub-item">
+        <div class="rub-pts">20 <span>pts</span></div>
+        <div class="rub-label">Reflection-based mapping with full nullable type resolution and attribute-only filtering</div>
+      </div>
+      <div class="rub-item">
+        <div class="rub-pts">25 <span>pts</span></div>
+        <div class="rub-label">Generic DbSet&lt;T&gt; with all 5 parameterised CRUD operations, null-safe</div>
+      </div>
+      <div class="rub-item">
+        <div class="rub-pts">25 <span>pts</span></div>
+        <div class="rub-label">Migration CLI — add (8), apply (7), list (5), rollback (5)</div>
+      </div>
+      <div class="rub-item" style="grid-column: 1 / -1;">
+        <div class="rub-pts">15 <span>pts</span></div>
+        <div class="rub-label">Demo in Program.cs covers all 5 steps end-to-end, exercises nullable fields, clear console output</div>
+      </div>
+      <div class="rub-total">
+        <span class="rub-label" style="font-size:14px;">Total</span>
+        <span class="rub-pts" style="font-family:'DM Mono',monospace;">100 <span>pts</span></span>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="sec-label">Submission Requirements</div>
+    <div class="sub-grid">
+      <div class="sub-row">
+        <span class="sub-key">Format</span>
+        <span class="sub-val">Public GitHub repository link submitted via the course portal</span>
+      </div>
+      <div class="sub-row">
+        <span class="sub-key">Repo structure</span>
+        <span class="sub-val">Two console projects in one solution: <code>MiniOrm/</code> (library + demo) and <code>MiniOrm.Migrations/</code> (CLI)</span>
+      </div>
+      <div class="sub-row">
+        <span class="sub-key">README</span>
+        <span class="sub-val">Postgres setup, how to set <code>MINIORM_CONN</code>, how to run migrations, how to run the demo, explanation of type mapping and attribute filtering</span>
+      </div>
+      <div class="sub-row">
+        <span class="sub-key">Restriction</span>
+        <span class="sub-val">Only <code>Npgsql</code> permitted as third-party NuGet. EF Core, Dapper, or any other ORM = zero marks for affected task</span>
+      </div>
+      <div class="sub-row">
+        <span class="sub-key">Deadline</span>
+        <span class="sub-val"><strong>13 May 2026</strong></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function toggle(el) {
+    const body = el.nextElementSibling;
+    const chevron = el.querySelector('.chevron');
+    const open = body.classList.toggle('open');
+    chevron.style.transform = open ? 'rotate(90deg)' : '';
+  }
+</script>
+</body>
+</html>
